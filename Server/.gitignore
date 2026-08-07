@@ -1,4 +1,9 @@
+# dependencies
 node_modules/
+
+# environment variables
 .env
+
+# uploaded books
 uploads/books/*
 !uploads/books/.gitkeep
