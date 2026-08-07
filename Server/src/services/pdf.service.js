@@ -1,0 +1,1 @@
+//# generar vista previa, servir páginas, evitar 

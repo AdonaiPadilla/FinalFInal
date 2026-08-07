@@ -1,0 +1,1 @@
+//  # manejo centralizado de errores
