@@ -1,12 +1,15 @@
 const express = require('express');
 const cors = require('cors');
+const sanitizarMongo = require('./middlewares/sanitize.middleware');
+const errorHandler = require('./middlewares/error.middleware');
 
 const app = express();
 
 // Middlewares globales
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50kb' }));
+app.use(express.urlencoded({ extended: true, limit: '50kb' }));
+app.use(sanitizarMongo); // limpia operadores de inyección NoSQL ($, .) del body
 
 // Ruta de prueba, para confirmar que el servidor responde
 app.get('/api/health', (req, res) => {
@@ -22,7 +25,7 @@ app.use('/api/rentals', require('./routes/rental.routes'));
 // app.use('/api/admin', require('./routes/admin.routes'));
 app.use('/uploads', express.static('uploads'));
 
-// Middleware de manejo de errores (lo armamos más adelante)
-// app.use(require('./middlewares/error.middleware'));
+// Middleware de manejo de errores (siempre al final, después de las rutas)
+app.use(errorHandler);
 
 module.exports = app;

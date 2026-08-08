@@ -1,50 +1,112 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import api from '../api/axiosConfig';
+import { limpiarTexto } from '../utils/validation';
 
-const AuthContext = createContext(undefined);
+interface Usuario {
+  id?: string;
+  nombre: string;
+  email: string;
+  rol?: string;
+  [key: string]: any;
+}
 
-export const AuthProvider = ({ children }) => {
-  const [usuario, setUsuario] = useState(null);
-  const [token, setToken] = useState(null);
+interface AuthContextType {
+  usuario: Usuario | null;
+  token: string | null;
+  cargando: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  registro: (nombre: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     const cargarSesion = async () => {
-      const tokenGuardado = await SecureStore.getItemAsync('token');
-      if (tokenGuardado) {
-        setToken(tokenGuardado);
-        api.defaults.headers.common['Authorization'] = `Bearer ${tokenGuardado}`;
+      try {
+        const tokenGuardado = await SecureStore.getItemAsync('token');
+        const usuarioGuardado = await SecureStore.getItemAsync('usuario');
+
+        if (tokenGuardado) {
+          setToken(tokenGuardado);
+          api.defaults.headers.common['Authorization'] = `Bearer ${tokenGuardado}`;
+        }
+
+        if (usuarioGuardado) {
+          setUsuario(JSON.parse(usuarioGuardado));
+        }
+      } catch (error) {
+        console.error('Error al cargar la sesión:', error);
+        // Si algo está corrupto, no dejamos el estado a medias.
+        await SecureStore.deleteItemAsync('token').catch(() => {});
+        await SecureStore.deleteItemAsync('usuario').catch(() => {});
+      } finally {
+        setCargando(false);
       }
-      setCargando(false);
     };
     cargarSesion();
   }, []);
 
-  const login = async (email, password) => {
-    const respuesta = await api.post('/auth/login', { email, password });
-    const { token, usuario } = respuesta.data;
-
-    await SecureStore.setItemAsync('token', token);
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-    setToken(token);
-    setUsuario(usuario);
+  const guardarSesion = async (nuevoToken: string, nuevoUsuario: Usuario) => {
+    await SecureStore.setItemAsync('token', nuevoToken);
+    await SecureStore.setItemAsync('usuario', JSON.stringify(nuevoUsuario));
+    api.defaults.headers.common['Authorization'] = `Bearer ${nuevoToken}`;
+    setToken(nuevoToken);
+    setUsuario(nuevoUsuario);
   };
 
-  const registro = async (nombre, email, password) => {
-    const respuesta = await api.post('/auth/register', { nombre, email, password });
-    const { token, usuario } = respuesta.data;
+  const login = async (email: string, password: string) => {
+    // Nunca confiamos en el input tal cual: se limpia antes de enviarlo.
+    const emailLimpio = limpiarTexto(email).toLowerCase();
 
-    await SecureStore.setItemAsync('token', token);
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    if (!emailLimpio || !password) {
+      throw new Error('Correo y contraseña son obligatorios.');
+    }
 
-    setToken(token);
-    setUsuario(usuario);
+    const respuesta = await api.post('/auth/login', {
+      email: emailLimpio,
+      password,
+    });
+    const { token: nuevoToken, usuario: nuevoUsuario } = respuesta.data;
+
+    if (!nuevoToken || !nuevoUsuario) {
+      throw new Error('Respuesta inválida del servidor.');
+    }
+
+    await guardarSesion(nuevoToken, nuevoUsuario);
+  };
+
+  const registro = async (nombre: string, email: string, password: string) => {
+    const nombreLimpio = limpiarTexto(nombre);
+    const emailLimpio = limpiarTexto(email).toLowerCase();
+
+    if (!nombreLimpio || !emailLimpio || !password) {
+      throw new Error('Todos los campos son obligatorios.');
+    }
+
+    const respuesta = await api.post('/auth/register', {
+      nombre: nombreLimpio,
+      email: emailLimpio,
+      password,
+    });
+    const { token: nuevoToken, usuario: nuevoUsuario } = respuesta.data;
+
+    if (!nuevoToken || !nuevoUsuario) {
+      throw new Error('Respuesta inválida del servidor.');
+    }
+
+    await guardarSesion(nuevoToken, nuevoUsuario);
   };
 
   const logout = async () => {
     await SecureStore.deleteItemAsync('token');
+    await SecureStore.deleteItemAsync('usuario');
     delete api.defaults.headers.common['Authorization'];
     setToken(null);
     setUsuario(null);
