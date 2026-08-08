@@ -45,11 +45,11 @@ export default function CatalogoLibros() {
 
   const librosPorCategoria = libros.length > 0
     ? libros.reduce((acc, libro) => {
-        const categoria = libro.categoria || 'General';
-        if (!acc[categoria]) acc[categoria] = [];
-        acc[categoria].push(libro);
-        return acc;
-      }, {})
+      const categoria = libro.categoria || 'General';
+      if (!acc[categoria]) acc[categoria] = [];
+      acc[categoria].push(libro);
+      return acc;
+    }, {})
     : {};
 
   if (cargando) {
