@@ -44,8 +44,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } catch (error) {
         console.error('Error al cargar la sesión:', error);
         // Si algo está corrupto, no dejamos el estado a medias.
-        await SecureStore.deleteItemAsync('token').catch(() => {});
-        await SecureStore.deleteItemAsync('usuario').catch(() => {});
+        await SecureStore.deleteItemAsync('token').catch(() => { });
+        await SecureStore.deleteItemAsync('usuario').catch(() => { });
       } finally {
         setCargando(false);
       }
