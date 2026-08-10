@@ -41,7 +41,7 @@ const crearRenta = async (req, res) => {
 const misRentas = async (req, res) => {
   try {
     const rentas = await Rental.find({ usuario: req.usuario.id })
-      .populate('libro', 'titulo autor portada')
+      .populate('libro', 'titulo autor portada categoria')
       .sort({ createdAt: -1 });
     res.json(rentas);
   } catch (error) {

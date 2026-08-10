@@ -1,13 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const { listarLibros, obtenerLibro, crearLibro, actualizarLibro, eliminarLibro } = require('../controllers/book.controller');
-const protegerRuta = require('../middlewares/auth.middleware');
+const { listarLibros, obtenerLibro, crearLibro, actualizarLibro, eliminarLibro, descargarPdf, leerPdf } = require('../controllers/book.controller');
+const { protegerRuta, autenticacionOpcional } = require('../middlewares/auth.middleware');
 const permitirRoles = require('../middlewares/role.middleware');
 const upload = require('../middlewares/upload.middleware');
 
-// Públicas
+// Públicas, pero si viene token válido se incluye el estado del usuario
+// respecto al libro (comprado / rentado) — ver book.controller.js -> obtenerLibro.
 router.get('/libros', listarLibros);
-router.get('/libros/:id', obtenerLibro);
+router.get('/libros/:id', autenticacionOpcional, obtenerLibro);
+
+// Leer en línea: requiere sesión + haber comprado o rentado el libro (o
+// ser admin/gerente). Ver rentalAccess.service.js -> tieneAccesoLectura.
+router.get('/libros/:id/leer', protegerRuta, leerPdf);
+
+// Descargar el archivo completo: requiere sesión + haberlo COMPRADO
+// (rentar NO da derecho a descarga, solo a leer). Admin/gerente sí puede,
+// para fines administrativos. Ver rentalAccess.service.js -> tieneAccesoDescarga.
+router.get('/libros/:id/download', protegerRuta, descargarPdf);
 
 // Solo admin/gerente
 router.post('/', protegerRuta, permitirRoles('admin', 'gerente'), crearLibro);

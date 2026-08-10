@@ -10,7 +10,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import {
   validarEmail,
@@ -20,7 +20,8 @@ import {
 } from '../utils/validation';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
+  const { emailRegistrado } = useLocalSearchParams<{ emailRegistrado?: string }>();
+  const [email, setEmail] = useState(emailRegistrado ?? '');
   const [password, setPassword] = useState('');
   const [errores, setErrores] = useState<{ email?: string; password?: string; general?: string }>({});
   const [enviando, setEnviando] = useState(false);

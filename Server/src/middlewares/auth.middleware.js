@@ -18,7 +18,28 @@ const protegerRuta = (req, res, next) => {
   }
 };
 
+// Variante para rutas públicas (ej. detalle de libro) que igual quieren
+// saber quién está viendo, SI está logueado. A diferencia de protegerRuta,
+// nunca corta la petición: si no hay token, o es inválido/expiró, deja
+// pasar sin usuario (req.usuario queda undefined) en vez de responder 401.
+const autenticacionOpcional = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      req.usuario = verifyToken(token);
+    } catch (error) {
+      // Token vencido/inválido: seguimos como visitante anónimo en vez de bloquear.
+    }
+  }
+
+  next();
+};
+
 module.exports = protegerRuta;
+module.exports.protegerRuta = protegerRuta;
+module.exports.autenticacionOpcional = autenticacionOpcional;
 
 /*
 Explicación

@@ -9,8 +9,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import {
   validarEmail,
@@ -66,6 +67,11 @@ export default function RegisterScreen() {
     setEnviando(true);
     try {
       await registro(nombre, email, password);
+      // No hay sesión iniciada todavía (registro() ya no la guarda):
+      // mandamos al usuario al login para que entre con la cuenta que
+      // acaba de crear, en vez de dejarlo directo en el dashboard.
+      Alert.alert('Cuenta creada', 'Ya puedes iniciar sesión con tu nueva cuenta.');
+      router.replace({ pathname: '/', params: { emailRegistrado: email } });
     } catch (error) {
       setErrores({ general: obtenerMensajeError(error) });
     } finally {

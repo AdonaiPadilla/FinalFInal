@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, Image, StyleSheet, ActivityIndicator, ScrollView, Button, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { obtenerLibroPorId, rentarLibro, comprarLibro } from '../../api/booksApi';
 
 export default function DetalleLibroScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const [libro, setLibro] = useState(null);
+  const [libro, setLibro] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
 
@@ -21,9 +21,14 @@ export default function DetalleLibroScreen() {
     }
   };
 
-  useEffect(() => {
-    cargar();
-  }, [id]);
+  // useFocusEffect en vez de solo useEffect: si el usuario viene de "Mis
+  // rentas"/"Mis compras" o de rentar/comprar y regresa a esta pantalla,
+  // se refresca el estado (comprado/rentado) en vez de quedar desactualizado.
+  useFocusEffect(
+    useCallback(() => {
+      cargar();
+    }, [id])
+  );
 
   const manejarRentar = async () => {
     setProcesando(true);
@@ -44,6 +49,7 @@ export default function DetalleLibroScreen() {
     try {
       await comprarLibro(id as string);
       Alert.alert('Listo', 'Compra realizada correctamente');
+      await cargar();
     } catch (error) {
       const mensaje = error.response?.data?.message || 'No se pudo comprar el libro';
       Alert.alert('Error', mensaje);
@@ -68,6 +74,11 @@ export default function DetalleLibroScreen() {
     );
   }
 
+  // Estos dos campos los manda el servidor solo si el usuario está
+  // autenticado (ver book.controller.js -> obtenerLibro + autenticacionOpcional).
+  const yaComprado = !!libro.comprado;
+  const yaRentado = !!libro.rentado;
+
   return (
     <ScrollView style={styles.contenedor}>
       <Button title="← Volver" onPress={() => router.back()} />
@@ -84,9 +95,22 @@ export default function DetalleLibroScreen() {
       <Text style={styles.autor}>{libro.autor}</Text>
       <Text style={styles.categoria}>{libro.categoria}</Text>
 
-      {!libro.disponible ? (
+      {yaComprado ? (
+        <View style={[styles.badgeEstado, styles.badgeComprado]}>
+          <Text style={styles.textoBadgeComprado}>✓ Ya tienes este libro comprado</Text>
+        </View>
+      ) : yaRentado ? (
+        <View style={[styles.badgeEstado, styles.badgeRentado]}>
+          <Text style={styles.textoBadgeRentado}>
+            Ya tienes este libro rentado
+            {libro.rentaFechaFin ? ` · vence ${new Date(libro.rentaFechaFin).toLocaleDateString()}` : ''}
+          </Text>
+        </View>
+      ) : null}
+
+      {!libro.disponible && !yaRentado ? (
         <View style={styles.badgeOcupado}>
-          <Text style={styles.textoOcupado}>Actualmente rentado</Text>
+          <Text style={styles.textoOcupado}>Actualmente rentado por otro usuario</Text>
         </View>
       ) : null}
 
@@ -110,15 +134,25 @@ export default function DetalleLibroScreen() {
         </View>
       </View>
 
-      <View style={styles.botones}>
-        <Button
-          title={libro.disponible ? 'Rentar' : 'No disponible'}
-          onPress={manejarRentar}
-          disabled={!libro.disponible || procesando}
-        />
-        <View style={{ height: 10 }} />
-        <Button title="Comprar" color="#2a7" onPress={manejarComprar} disabled={procesando} />
-      </View>
+      {!yaComprado ? (
+        <View style={styles.botones}>
+          {!yaRentado ? (
+            <>
+              <Button
+                title={libro.disponible ? 'Rentar' : 'No disponible'}
+                onPress={manejarRentar}
+                disabled={!libro.disponible || procesando}
+              />
+              <View style={{ height: 10 }} />
+            </>
+          ) : (
+            <Text style={styles.notaRenta}>
+              Con la renta puedes leer el libro, pero para descargarlo necesitas comprarlo.
+            </Text>
+          )}
+          <Button title="Comprar" color="#2a7" onPress={manejarComprar} disabled={procesando} />
+        </View>
+      ) : null}
     </ScrollView>
   );
 }
@@ -132,6 +166,11 @@ const styles = StyleSheet.create({
   titulo: { fontSize: 22, fontWeight: 'bold', marginTop: 16 },
   autor: { fontSize: 16, color: '#666', marginTop: 4 },
   categoria: { fontSize: 13, color: '#2a7', marginTop: 4, fontWeight: '600' },
+  badgeEstado: { borderRadius: 6, padding: 10, marginTop: 12, alignSelf: 'flex-start' },
+  badgeComprado: { backgroundColor: '#e2f6ea' },
+  textoBadgeComprado: { color: '#12703f', fontWeight: '700', fontSize: 13 },
+  badgeRentado: { backgroundColor: '#fff4e0' },
+  textoBadgeRentado: { color: '#9a5b00', fontWeight: '700', fontSize: 13 },
   badgeOcupado: { backgroundColor: '#ffe0e0', borderRadius: 6, padding: 8, marginTop: 10, alignSelf: 'flex-start' },
   textoOcupado: { color: '#c00', fontWeight: '600', fontSize: 12 },
   descripcion: { fontSize: 14, marginTop: 16, lineHeight: 20 },
@@ -142,4 +181,5 @@ const styles = StyleSheet.create({
   precioLabel: { fontSize: 12, color: '#666' },
   precioValor: { fontSize: 20, fontWeight: 'bold', marginTop: 4 },
   botones: { marginTop: 24, marginBottom: 40 },
+  notaRenta: { fontSize: 12, color: '#9a5b00', marginBottom: 10, lineHeight: 17 },
 });

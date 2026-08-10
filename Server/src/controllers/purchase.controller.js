@@ -13,6 +13,11 @@ const crearCompra = async (req, res) => {
       return res.status(404).json({ message: 'Libro no encontrado' });
     }
 
+    const yaComprado = await Purchase.findOne({ usuario: req.usuario.id, libro: libroId });
+    if (yaComprado) {
+      return res.status(409).json({ message: 'Ya tienes este libro comprado' });
+    }
+
     const compra = await Purchase.create({
       usuario: req.usuario.id,
       libro: libroId,
@@ -22,6 +27,20 @@ const crearCompra = async (req, res) => {
     res.status(201).json({ message: 'Compra realizada correctamente', compra });
   } catch (error) {
     res.status(500).json({ message: 'Error al comprar el libro', error: error.message });
+  }
+};
+
+// GET /api/purchases/mias
+// Compras del usuario autenticado (a diferencia de todasLasCompras, que
+// es solo para admin/gerente y trae las de todos).
+const misCompras = async (req, res) => {
+  try {
+    const compras = await Purchase.find({ usuario: req.usuario.id })
+      .populate('libro', 'titulo autor portada categoria')
+      .sort({ createdAt: -1 });
+    res.json(compras);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener tus compras', error: error.message });
   }
 };
 
@@ -37,4 +56,4 @@ const todasLasCompras = async (req, res) => {
   }
 };
 
-module.exports = { crearCompra, todasLasCompras };
+module.exports = { crearCompra, misCompras, todasLasCompras };

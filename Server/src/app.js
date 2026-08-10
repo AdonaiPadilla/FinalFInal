@@ -23,7 +23,13 @@ app.use('/api/books', require('./routes/book.routes'));
 app.use('/api/purchases', require('./routes/purchase.routes'));
 app.use('/api/rentals', require('./routes/rental.routes'));
 // app.use('/api/admin', require('./routes/admin.routes'));
-app.use('/uploads', express.static('uploads'));
+// OJO: antes aquí había `app.use('/uploads', express.static('uploads'))`,
+// que servía TODOS los PDFs de forma pública, sin autenticación ni
+// verificación de compra/renta -- cualquiera que conociera o adivinara
+// la ruta de un archivo podía descargar el libro completo gratis.
+// Los PDFs ahora se sirven únicamente a través de una ruta protegida:
+// GET /api/books/libros/:id/download (requiere login + compra/renta
+// vigente, o rol admin/gerente). Ver book.controller.js -> descargarPdf.
 
 // Middleware de manejo de errores (siempre al final, después de las rutas)
 app.use(errorHandler);

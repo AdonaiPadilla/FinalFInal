@@ -90,18 +90,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       throw new Error('Todos los campos son obligatorios.');
     }
 
-    const respuesta = await api.post('/auth/register', {
+    // A propósito NO guardamos sesión aquí (ni token ni usuario): el
+    // registro solo crea la cuenta. Es el propio usuario quien debe
+    // iniciar sesión después, para confirmar que la contraseña que
+    // acaba de elegir es la correcta.
+    await api.post('/auth/register', {
       nombre: nombreLimpio,
       email: emailLimpio,
       password,
     });
-    const { token: nuevoToken, usuario: nuevoUsuario } = respuesta.data;
-
-    if (!nuevoToken || !nuevoUsuario) {
-      throw new Error('Respuesta inválida del servidor.');
-    }
-
-    await guardarSesion(nuevoToken, nuevoUsuario);
   };
 
   const logout = async () => {

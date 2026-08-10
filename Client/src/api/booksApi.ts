@@ -20,6 +20,30 @@ export const comprarLibro = async (libroId: string) => {
   return response.data;
 };
 
+// Rentas y compras del usuario que tiene la sesión activa.
+export const obtenerMisRentas = async () => {
+  const response = await api.get('/rentals/mias');
+  return response.data;
+};
+
+export const obtenerMisCompras = async () => {
+  const response = await api.get('/purchases/mias');
+  return response.data;
+};
+
+// Devuelve la URL protegida de descarga (requiere sesión + haber COMPRADO
+// el libro; una renta vigente da acceso a leer, no a descargar). No
+// dispara la descarga por sí sola: úsala con expo-file-system pasando el
+// header Authorization, ya que un Linking.openURL normal no manda headers.
+export const obtenerUrlDescargaPdf = (libroId: string) => {
+  return `${api.defaults.baseURL}/books/libros/${libroId}/download`;
+};
+
+// URL protegida para leer el libro en línea (compra o renta vigente).
+export const obtenerUrlLecturaPdf = (libroId: string) => {
+  return `${api.defaults.baseURL}/books/libros/${libroId}/leer`;
+};
+
 export const crearLibro = async (datos: any) => {
   const response = await api.post('/books', datos);
   return response.data;
