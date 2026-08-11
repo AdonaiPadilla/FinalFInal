@@ -101,33 +101,6 @@ const resolverRutaPdf = (archivoPdf) => {
   return rutaAbsoluta;
 };
 
-// GET /api/books/libros/:id/preview
-// Vista previa pública: sirve las primeras páginas del PDF a cualquier
-// visitante (sin necesidad de estar autenticado ni haber comprado/rentado)
-// para que el usuario pueda evaluar el libro antes de decidir.
-// El cliente lee el header X-Preview-Pages y solo renderiza ese número de
-// páginas, así no necesitamos manipular el PDF en el servidor.
-const previewPdf = async (req, res) => {
-  try {
-    const libro = await Book.findById(req.params.id).select('archivoPdf activo titulo totalPaginas');
-    if (!libro || !libro.activo) {
-      return res.status(404).json({ message: 'Libro no encontrado' });
-    }
-
-    const rutaAbsoluta = resolverRutaPdf(libro.archivoPdf);
-    if (!rutaAbsoluta || !fs.existsSync(rutaAbsoluta)) {
-      return res.status(404).json({ message: 'Archivo no disponible' });
-    }
-
-    const paginasPreview = 3; // primeras 3 páginas
-    res.setHeader('Content-Disposition', `inline; filename="preview-${libro.titulo}.pdf"`);
-    res.setHeader('X-Preview-Pages', String(paginasPreview));
-    res.sendFile(rutaAbsoluta);
-  } catch (error) {
-    res.status(500).json({ message: 'Error al obtener la vista previa', error: error.message });
-  }
-};
-
 // GET /api/books/libros/:id/leer
 // Sirve el PDF EN LÍNEA (inline, para leer dentro de la app) a quien lo
 // compró, tiene una renta vigente, o es admin/gerente.
@@ -185,4 +158,4 @@ const descargarPdf = async (req, res) => {
   }
 };
 
-module.exports = { listarLibros, obtenerLibro, crearLibro, actualizarLibro, eliminarLibro, descargarPdf, leerPdf, previewPdf };
+module.exports = { listarLibros, obtenerLibro, crearLibro, actualizarLibro, eliminarLibro, descargarPdf, leerPdf };

@@ -18,6 +18,19 @@ const connectDB = async () => {
 const seedData = async () => {
   await connectDB();
 
+  // Este script borra TODA la colección de libros (Book.deleteMany({})).
+  // Ya causó que se perdieran los 42 libros reales cargados con
+  // cargarLibros.js, dejando solo estos 2 de prueba (cuyo archivoPdf ni
+  // siquiera apunta a un archivo real). Para evitar que se vuelva a correr
+  // por accidente, ahora exige la bandera --confirmar explícita:
+  //   node scripts/seed.js --confirmar
+  if (!process.argv.includes('--confirmar')) {
+    console.log('⚠️  seed.js borra TODOS los libros de la base de datos.');
+    console.log('   Si de verdad quieres hacer eso, corre: node scripts/seed.js --confirmar');
+    console.log('   (Si lo que quieres es cargar tus PDFs reales, usa cargarLibros.js en vez de este script.)');
+    process.exit(0);
+  }
+
   const libros = [
     {
       titulo: 'Cien Años de Soledad',

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { listarLibros, obtenerLibro, crearLibro, actualizarLibro, eliminarLibro, descargarPdf, leerPdf } = require('../controllers/book.controller');
+const { listarLibros, obtenerLibro, crearLibro, actualizarLibro, eliminarLibro, descargarPdf, leerPdf, previewPdf } = require('../controllers/book.controller');
 const { protegerRuta, autenticacionOpcional } = require('../middlewares/auth.middleware');
 const permitirRoles = require('../middlewares/role.middleware');
 const upload = require('../middlewares/upload.middleware');
@@ -9,6 +9,9 @@ const upload = require('../middlewares/upload.middleware');
 // respecto al libro (comprado / rentado) — ver book.controller.js -> obtenerLibro.
 router.get('/libros', listarLibros);
 router.get('/libros/:id', autenticacionOpcional, obtenerLibro);
+
+// Vista previa pública de las primeras páginas del PDF (sin autenticación)
+router.get('/libros/:id/preview', previewPdf);
 
 // Leer en línea: requiere sesión + haber comprado o rentado el libro (o
 // ser admin/gerente). Ver rentalAccess.service.js -> tieneAccesoLectura.

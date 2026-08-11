@@ -44,6 +44,11 @@ export const obtenerUrlLecturaPdf = (libroId: string) => {
   return `${api.defaults.baseURL}/books/libros/${libroId}/leer`;
 };
 
+// URL pública de vista previa (sin autenticación, primeras páginas).
+export const obtenerUrlPreviewPdf = (libroId: string) => {
+  return `${api.defaults.baseURL}/books/libros/${libroId}/preview`;
+};
+
 export const crearLibro = async (datos: any) => {
   const response = await api.post('/books', datos);
   return response.data;

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image, RefreshControl, TouchableOpacity } from 'react-native';
 import { obtenerLibros } from '../api/booksApi';
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 
 export default function CatalogoLibros() {
@@ -10,6 +10,7 @@ export default function CatalogoLibros() {
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState(null);
   const { usuario } = useAuth();
+  const router = useRouter();
   const esAdmin = usuario?.rol === 'admin' || usuario?.rol === 'gerente';
 
   const cargarLibros = async () => {
@@ -118,6 +119,13 @@ export default function CatalogoLibros() {
                     </TouchableOpacity>
                   </Link>
                 ) : null}
+                {/* Botón rápido de vista previa */}
+                <TouchableOpacity
+                  style={styles.botonPreviewCard}
+                  onPress={() => router.push(`/preview/${libro._id}`)}
+                >
+                  <Text style={styles.botonPreviewCardTexto}>👁 Vista previa</Text>
+                </TouchableOpacity>
               </View>
             )}
           />
@@ -142,4 +150,14 @@ const styles = StyleSheet.create({
   badgeOcupado: { position: 'absolute', top: 6, right: 6, backgroundColor: '#c00', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
   textoOcupado: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   badgeAdmin: { fontSize: 11, color: '#0066cc', marginTop: 4, fontWeight: '600' },
+  botonPreviewCard: {
+    marginTop: 5,
+    borderWidth: 1,
+    borderColor: '#6c63ff',
+    borderRadius: 6,
+    paddingVertical: 4,
+    alignItems: 'center',
+    backgroundColor: 'rgba(108,99,255,0.06)',
+  },
+  botonPreviewCardTexto: { fontSize: 10, color: '#6c63ff', fontWeight: '700' },
 });

@@ -39,6 +39,7 @@ function Navegacion() {
       <Stack.Screen name="register" />
       <Stack.Screen name="home" />
       <Stack.Screen name="libro/[id]" />
+      <Stack.Screen name="lector/[id]" />
       <Stack.Screen name="biblioteca/rentas" />
       <Stack.Screen name="biblioteca/compras" />
       <Stack.Screen name="admin/index" />

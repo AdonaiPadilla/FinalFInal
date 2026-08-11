@@ -10,6 +10,27 @@ const cargarLibros = async () => {
   await mongoose.connect(process.env.MONGO_URI);
   console.log('Conectado a MongoDB');
 
+  // 1) Limpieza: cualquier libro que ya exista en la BD pero cuyo PDF ya
+  // no esté físicamente en uploads/books se desactiva (soft delete) en
+  // vez de dejarlo ahí dando "Archivo no disponible" al usuario. Esto
+  // también resuelve los 2 libros de prueba que deja seed.js
+  // (cien_anios.pdf, el_principito.pdf), que nunca tuvieron PDF real.
+  const librosExistentes = await Book.find({ activo: true });
+  let desactivados = 0;
+  for (const libro of librosExistentes) {
+    const rutaRelativa = libro.archivoPdf.replace(/^\/?uploads\//, '');
+    const rutaAbsoluta = path.join(__dirname, '../uploads', rutaRelativa);
+    if (!fs.existsSync(rutaAbsoluta)) {
+      libro.activo = false;
+      await libro.save();
+      desactivados++;
+      console.log(`Desactivado (sin archivo real): ${libro.titulo}`);
+    }
+  }
+
+  // 2) Carga: recorre uploads/books/<categoria>/*.pdf e inserta los que
+  // todavía no estén en la BD (se identifican por su archivoPdf, así que
+  // correr esto varias veces es seguro, nunca duplica).
   const categorias = fs.readdirSync(carpetaBase, { withFileTypes: true })
     .filter((item) => item.isDirectory());
 
@@ -23,12 +44,20 @@ const cargarLibros = async () => {
       .filter((archivo) => archivo.toLowerCase().endsWith('.pdf'));
 
     for (const archivo of archivos) {
-      const titulo = archivo.replace('.pdf', '').replace(/-/g, ' ');
+      const titulo = archivo.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ').trim();
       const rutaRelativa = `/uploads/books/${nombreCategoria}/${archivo}`;
 
       const yaExiste = await Book.findOne({ archivoPdf: rutaRelativa });
       if (yaExiste) {
-        console.log(`Ya existe: ${titulo}`);
+        // Si existía pero estaba desactivado (por ejemplo por una corrida
+        // anterior antes de que el archivo estuviera ahí), lo reactivamos.
+        if (!yaExiste.activo) {
+          yaExiste.activo = true;
+          await yaExiste.save();
+          console.log(`Reactivado: ${titulo}`);
+        } else {
+          console.log(`Ya existe: ${titulo}`);
+        }
         continue;
       }
 
@@ -48,7 +77,7 @@ const cargarLibros = async () => {
     }
   }
 
-  console.log(`\nListo. Total insertados: ${totalInsertados}`);
+  console.log(`\nListo. Insertados: ${totalInsertados} · Desactivados (sin archivo): ${desactivados}`);
   await mongoose.disconnect();
 };
 

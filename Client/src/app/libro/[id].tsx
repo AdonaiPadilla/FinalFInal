@@ -1,14 +1,20 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, Image, StyleSheet, ActivityIndicator, ScrollView, Button, Alert } from 'react-native';
+import { View, Text, Image, StyleSheet, ActivityIndicator, ScrollView, Button, Alert, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import { obtenerLibroPorId, rentarLibro, comprarLibro } from '../../api/booksApi';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
+import { obtenerLibroPorId, rentarLibro, comprarLibro, obtenerUrlDescargaPdf } from '../../api/booksApi';
+import { descargarPdfProtegido } from '../../utils/pdfAccess';
+import { useAuth } from '../../context/AuthContext';
 
 export default function DetalleLibroScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { token } = useAuth();
   const [libro, setLibro] = useState<any>(null);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
+  const [descargando, setDescargando] = useState(false);
 
   const cargar = async () => {
     try {
@@ -55,6 +61,33 @@ export default function DetalleLibroScreen() {
       Alert.alert('Error', mensaje);
     } finally {
       setProcesando(false);
+    }
+  };
+
+  // Solo se ofrece cuando ya está comprado (rentar NO da derecho a
+  // descarga). El servidor igual vuelve a validarlo con
+  // tieneAccesoDescarga: aunque alguien manipulara la UI, un 403 lo detiene.
+  const manejarDescargar = async () => {
+    if (!token) return;
+    setDescargando(true);
+    try {
+      const { uri } = await descargarPdfProtegido(
+        obtenerUrlDescargaPdf(id as string),
+        token,
+        `${libro.titulo}.pdf`,
+        FileSystem.documentDirectory || undefined
+      );
+
+      const disponibleParaCompartir = await Sharing.isAvailableAsync();
+      if (disponibleParaCompartir) {
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf' });
+      } else {
+        Alert.alert('Listo', 'El libro se descargó correctamente.');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'No se pudo descargar el libro');
+    } finally {
+      setDescargando(false);
     }
   };
 
@@ -134,6 +167,30 @@ export default function DetalleLibroScreen() {
         </View>
       </View>
 
+      {/* Botón de vista previa — visible siempre, antes de rentar/comprar */}
+      <TouchableOpacity
+        style={styles.botonPreview}
+        onPress={() => router.push(`/preview/${id}`)}
+      >
+        <Text style={styles.botonPreviewTexto}>👁 Vista previa</Text>
+      </TouchableOpacity>
+
+      {yaComprado || yaRentado ? (
+        <View style={styles.botonesAcceso}>
+          <Button title="📖 Leer" onPress={() => router.push(`/lector/${id}`)} />
+          {yaComprado ? (
+            <View style={{ marginTop: 10 }}>
+              <Button
+                title={descargando ? 'Descargando...' : '⬇ Descargar'}
+                color="#2a7"
+                onPress={manejarDescargar}
+                disabled={descargando}
+              />
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
       {!yaComprado ? (
         <View style={styles.botones}>
           {!yaRentado ? (
@@ -181,5 +238,21 @@ const styles = StyleSheet.create({
   precioLabel: { fontSize: 12, color: '#666' },
   precioValor: { fontSize: 20, fontWeight: 'bold', marginTop: 4 },
   botones: { marginTop: 24, marginBottom: 40 },
+  botonesAcceso: { marginTop: 20 },
   notaRenta: { fontSize: 12, color: '#9a5b00', marginBottom: 10, lineHeight: 17 },
+  botonPreview: {
+    marginTop: 20,
+    borderWidth: 1.5,
+    borderColor: '#6c63ff',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: 'rgba(108,99,255,0.07)',
+  },
+  botonPreviewTexto: {
+    color: '#6c63ff',
+    fontWeight: '700',
+    fontSize: 14,
+    letterSpacing: 0.4,
+  },
 });
