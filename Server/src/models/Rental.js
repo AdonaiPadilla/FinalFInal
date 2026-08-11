@@ -19,6 +19,10 @@ const rentalSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  precioRenta: {
+    type: Number,
+    default: 0
+  },
   activa: {
     type: Boolean,
     default: true

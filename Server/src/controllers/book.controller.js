@@ -8,16 +8,9 @@ const listarLibros = async (req, res) => {
   try {
     const libros = await Book.find({ activo: true }).select('-archivoPdf').lean();
 
-    const rentasActivas = await Rental.find({
-      activa: true,
-      fechaFin: { $gte: new Date() }
-    }).select('libro');
-
-    const idsOcupados = new Set(rentasActivas.map((r) => r.libro.toString()));
-
     const librosConEstado = libros.map((libro) => ({
       ...libro,
-      disponible: !idsOcupados.has(libro._id.toString())
+      disponible: libro.activo
     }));
 
     res.json(librosConEstado);
@@ -39,18 +32,12 @@ const obtenerLibro = async (req, res) => {
       return res.status(404).json({ message: 'Libro no encontrado' });
     }
 
-    const rentaActiva = await Rental.findOne({
-      libro: req.params.id,
-      activa: true,
-      fechaFin: { $gte: new Date() }
-    });
-
     let estadoUsuario = { comprado: false, rentado: false, rentaFechaFin: null };
     if (req.usuario) {
       estadoUsuario = await obtenerEstadoUsuario(req.usuario.id, libro._id);
     }
 
-    res.json({ ...libro, disponible: !rentaActiva, ...estadoUsuario });
+    res.json({ ...libro, disponible: libro.activo, ...estadoUsuario });
   } catch (error) {
     res.status(500).json({ message: 'Error al obtener el libro', error: error.message });
   }

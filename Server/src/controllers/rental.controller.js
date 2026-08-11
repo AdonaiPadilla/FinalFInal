@@ -13,23 +13,14 @@ const crearRenta = async (req, res) => {
       return res.status(404).json({ message: 'Libro no encontrado' });
     }
 
-    const rentaActiva = await Rental.findOne({
-      libro: libroId,
-      activa: true,
-      fechaFin: { $gte: new Date() }
-    });
-
-    if (rentaActiva) {
-      return res.status(409).json({ message: 'Este libro ya está rentado actualmente' });
-    }
-
     const fechaFin = new Date();
     fechaFin.setDate(fechaFin.getDate() + (libro.duracionRentaDias || 7));
 
     const renta = await Rental.create({
       usuario: req.usuario.id,
       libro: libroId,
-      fechaFin
+      fechaFin,
+      precioRenta: libro.precioRenta || 0
     });
 
     res.status(201).json({ message: 'Libro rentado correctamente', renta });

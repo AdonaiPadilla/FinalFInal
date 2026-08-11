@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { obtenerLibroPorId, actualizarLibro, eliminarLibro } from '../../../api/booksApi';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function EditarLibroScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { usuario } = useAuth();
+  const esAdmin = usuario?.rol === 'admin';
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
@@ -44,17 +47,22 @@ export default function EditarLibroScreen() {
   const manejarGuardar = async () => {
     setGuardando(true);
     try {
-      await actualizarLibro(id as string, {
+      const datosActualizar: any = {
         titulo,
         autor,
         descripcion,
         categoria,
-        precioCompra: Number(precioCompra),
-        precioRenta: Number(precioRenta),
         totalPaginas: Number(totalPaginas),
         duracionRentaDias: Number(duracionRentaDias),
         portada,
-      });
+      };
+
+      if (esAdmin) {
+        datosActualizar.precioCompra = Number(precioCompra);
+        datosActualizar.precioRenta = Number(precioRenta);
+      }
+
+      await actualizarLibro(id as string, datosActualizar);
       Alert.alert('Listo', 'Libro actualizado');
       router.back();
     } catch (error) {
@@ -109,11 +117,15 @@ export default function EditarLibroScreen() {
       <Text style={styles.label}>Descripción</Text>
       <TextInput style={styles.input} value={descripcion} onChangeText={setDescripcion} multiline />
 
-      <Text style={styles.label}>Precio de compra</Text>
-      <TextInput style={styles.input} value={precioCompra} onChangeText={setPrecioCompra} keyboardType="numeric" />
+      {esAdmin ? (
+        <>
+          <Text style={styles.label}>Precio de compra</Text>
+          <TextInput style={styles.input} value={precioCompra} onChangeText={setPrecioCompra} keyboardType="numeric" />
 
-      <Text style={styles.label}>Precio de renta</Text>
-      <TextInput style={styles.input} value={precioRenta} onChangeText={setPrecioRenta} keyboardType="numeric" />
+          <Text style={styles.label}>Precio de renta</Text>
+          <TextInput style={styles.input} value={precioRenta} onChangeText={setPrecioRenta} keyboardType="numeric" />
+        </>
+      ) : null}
 
       <Text style={styles.label}>Total de páginas</Text>
       <TextInput style={styles.input} value={totalPaginas} onChangeText={setTotalPaginas} keyboardType="numeric" />

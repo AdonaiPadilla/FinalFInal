@@ -2,11 +2,15 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, Button } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { obtenerTodasLasCompras } from '../../api/booksApi';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ComprasAdminScreen() {
   const router = useRouter();
+  const { usuario } = useAuth();
   const [compras, setCompras] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const esGerente = usuario?.rol === 'gerente';
+  const totalGanado = compras.reduce((sum, item) => sum + Number(item.precioPagado || 0), 0);
 
   useFocusEffect(
     useCallback(() => {
@@ -36,6 +40,7 @@ export default function ComprasAdminScreen() {
     <View style={styles.contenedor}>
       <Button title="← Volver" onPress={() => router.back()} />
       <Text style={styles.titulo}>Compras ({compras.length})</Text>
+      {!esGerente ? <Text style={styles.total}>Total ganado: ${totalGanado.toFixed(2)}</Text> : null}
 
       <FlatList
         data={compras}
@@ -56,7 +61,8 @@ export default function ComprasAdminScreen() {
 const styles = StyleSheet.create({
   contenedor: { flex: 1, padding: 16, paddingTop: 40 },
   centrado: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  titulo: { fontSize: 20, fontWeight: 'bold', marginTop: 16, marginBottom: 16 },
+  titulo: { fontSize: 20, fontWeight: 'bold', marginTop: 16, marginBottom: 8 },
+  total: { fontSize: 15, fontWeight: '600', color: '#2a7', marginBottom: 16 },
   fila: { borderBottomWidth: 1, borderBottomColor: '#eee', paddingVertical: 12 },
   tituloLibro: { fontSize: 15, fontWeight: '600' },
   detalle: { fontSize: 13, color: '#666', marginTop: 2 },

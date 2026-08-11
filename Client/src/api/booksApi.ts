@@ -92,3 +92,13 @@ export const obtenerTodasLasCompras = async () => {
   const response = await api.get('/purchases');
   return response.data;
 };
+
+export const obtenerTodosLosUsuarios = async () => {
+  const response = await api.get('/users');
+  return response.data;
+};
+
+export const eliminarUsuario = async (id: string) => {
+  const response = await api.delete(`/users/${id}`);
+  return response.data;
+};

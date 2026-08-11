@@ -47,6 +47,7 @@ function Navegacion() {
       <Stack.Screen name="admin/editar-libro/[id]" />
       <Stack.Screen name="admin/rentas" />
       <Stack.Screen name="admin/compras" />
+      <Stack.Screen name="admin/usuarios" />
     </Stack>
   );
 }

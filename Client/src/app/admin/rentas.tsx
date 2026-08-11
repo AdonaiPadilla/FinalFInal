@@ -2,11 +2,15 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, Button } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { obtenerTodasLasRentas } from '../../api/booksApi';
+import { useAuth } from '../../context/AuthContext';
 
 export default function RentasAdminScreen() {
   const router = useRouter();
+  const { usuario } = useAuth();
   const [rentas, setRentas] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const esGerente = usuario?.rol === 'gerente';
+  const totalGanado = rentas.reduce((sum, item) => sum + Number(item.precioRenta || 0), 0);
 
   useFocusEffect(
     useCallback(() => {
@@ -36,6 +40,7 @@ export default function RentasAdminScreen() {
     <View style={styles.contenedor}>
       <Button title="← Volver" onPress={() => router.back()} />
       <Text style={styles.titulo}>Rentas ({rentas.length})</Text>
+      {!esGerente ? <Text style={styles.total}>Total ganado: ${totalGanado.toFixed(2)}</Text> : null}
 
       <FlatList
         data={rentas}
@@ -49,6 +54,7 @@ export default function RentasAdminScreen() {
               <Text style={styles.detalle}>
                 Del {new Date(item.fechaInicio).toLocaleDateString()} al {new Date(item.fechaFin).toLocaleDateString()}
               </Text>
+              <Text style={styles.detalle}>Precio: ${Number(item.precioRenta || 0).toFixed(2)}</Text>
               <Text style={[styles.estado, activa ? styles.activa : styles.vencida]}>
                 {activa ? 'Activa' : 'Vencida'}
               </Text>
@@ -64,7 +70,8 @@ export default function RentasAdminScreen() {
 const styles = StyleSheet.create({
   contenedor: { flex: 1, padding: 16, paddingTop: 40 },
   centrado: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  titulo: { fontSize: 20, fontWeight: 'bold', marginTop: 16, marginBottom: 16 },
+  titulo: { fontSize: 20, fontWeight: 'bold', marginTop: 16, marginBottom: 8 },
+  total: { fontSize: 15, fontWeight: '600', color: '#2a7', marginBottom: 16 },
   fila: { borderBottomWidth: 1, borderBottomColor: '#eee', paddingVertical: 12 },
   tituloLibro: { fontSize: 15, fontWeight: '600' },
   detalle: { fontSize: 13, color: '#666', marginTop: 2 },

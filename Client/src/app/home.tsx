@@ -6,6 +6,7 @@ import CatalogoLibros from '../components/CatalogoLibros';
 
 export default function HomeScreen() {
   const { usuario, logout } = useAuth();
+  const esGerente = usuario?.rol === 'gerente';
 
   return (
     <View style={styles.contenedor}>
@@ -16,12 +17,15 @@ export default function HomeScreen() {
           <View style={styles.botonMitad}>
             <Button title="Mis rentas" onPress={() => router.push('/biblioteca/rentas')} />
           </View>
-          <View style={styles.botonMitad}>
+          <View style={[styles.botonMitad, styles.botonSeparado]}>
             <Button title="Mis compras" onPress={() => router.push('/biblioteca/compras')} />
           </View>
         </View>
         {usuario?.rol === 'admin' || usuario?.rol === 'gerente' ? (
-        <Button title="Panel Admin" onPress={() => router.push('/admin')} />        ) : null}
+          <View style={styles.panelAdminContainer}>
+            <Button title={esGerente ? 'Panel Gerente' : 'Panel Admin'} onPress={() => router.push('/admin')} />
+          </View>
+        ) : null}
       </View>
       <CatalogoLibros />
     </View>
@@ -34,4 +38,6 @@ const styles = StyleSheet.create({
   titulo: { fontSize: 20, fontWeight: 'bold', marginBottom: 12 },
   filaBotones: { flexDirection: 'row', gap: 10, marginTop: 10 },
   botonMitad: { flex: 1 },
+  botonSeparado: { marginLeft: 8 },
+  panelAdminContainer: { marginTop: 12 },
 });

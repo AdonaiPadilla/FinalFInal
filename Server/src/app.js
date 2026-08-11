@@ -22,6 +22,7 @@ app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/books', require('./routes/book.routes'));
 app.use('/api/purchases', require('./routes/purchase.routes'));
 app.use('/api/rentals', require('./routes/rental.routes'));
+app.use('/api/users', require('./routes/user.routes'));
 // app.use('/api/admin', require('./routes/admin.routes'));
 // OJO: antes aquí había `app.use('/uploads', express.static('uploads'))`,
 // que servía TODOS los PDFs de forma pública, sin autenticación ni
