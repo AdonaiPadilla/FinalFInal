@@ -1,1 +1,0 @@
-//# reportes: movimientos, gastos, inventario

@@ -1,1 +1,0 @@
-//  # junta todas las rutas con su prefijo /api/.
