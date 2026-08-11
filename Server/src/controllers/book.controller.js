@@ -3,6 +3,7 @@ const fs = require('fs');
 const Book = require('../models/Book');
 const Rental = require('../models/Rental');
 const { obtenerEstadoUsuario, tieneAccesoLectura, tieneAccesoDescarga } = require('../services/rentalAccess.service');
+const { validarDatosLibro } = require('../utils/validators.util');
 
 const listarLibros = async (req, res) => {
   try {
@@ -43,9 +44,27 @@ const obtenerLibro = async (req, res) => {
   }
 };
 
+// Campos que un admin/gerente puede mandar al crear/editar un libro.
+// La validación real de cada uno (tipo, longitud, patrones de inyección)
+// vive en utils/validators.util.js -> validarDatosLibro.
 const crearLibro = async (req, res) => {
   try {
-    const libro = await Book.create(req.body);
+    const { valido, errores, datos } = validarDatosLibro(req.body, { esCreacion: true });
+    if (!valido) {
+      return res.status(400).json({ message: errores[0], errores });
+    }
+
+    // Igual que en el cliente (editar-libro/[id].tsx esconde estos campos
+    // para gerente): un gerente NO puede fijar precios, ni al crear ni al
+    // editar. Antes esto solo se ocultaba en la UI -- con la API directa
+    // (Postman, etc.) un gerente sí podía mandarlos. Ahora el servidor lo
+    // rechaza de verdad.
+    if (req.usuario.rol === 'gerente') {
+      delete datos.precioCompra;
+      delete datos.precioRenta;
+    }
+
+    const libro = await Book.create(datos);
     res.status(201).json(libro);
   } catch (error) {
     res.status(500).json({ message: 'Error al crear el libro', error: error.message });
@@ -54,7 +73,17 @@ const crearLibro = async (req, res) => {
 
 const actualizarLibro = async (req, res) => {
   try {
-    const libro = await Book.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const { valido, errores, datos } = validarDatosLibro(req.body, { esCreacion: false });
+    if (!valido) {
+      return res.status(400).json({ message: errores[0], errores });
+    }
+
+    if (req.usuario.rol === 'gerente') {
+      delete datos.precioCompra;
+      delete datos.precioRenta;
+    }
+
+    const libro = await Book.findByIdAndUpdate(req.params.id, datos, { new: true, runValidators: true });
     if (!libro) {
       return res.status(404).json({ message: 'Libro no encontrado' });
     }

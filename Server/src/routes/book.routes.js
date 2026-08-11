@@ -4,28 +4,29 @@ const { listarLibros, obtenerLibro, crearLibro, actualizarLibro, eliminarLibro, 
 const { protegerRuta, autenticacionOpcional } = require('../middlewares/auth.middleware');
 const permitirRoles = require('../middlewares/role.middleware');
 const upload = require('../middlewares/upload.middleware');
+const { validarIdParam } = require('../utils/validators.util');
 
 // Públicas, pero si viene token válido se incluye el estado del usuario
 // respecto al libro (comprado / rentado) — ver book.controller.js -> obtenerLibro.
 router.get('/libros', listarLibros);
-router.get('/libros/:id', autenticacionOpcional, obtenerLibro);
+router.get('/libros/:id', validarIdParam(), autenticacionOpcional, obtenerLibro);
 
 // Vista previa pública de las primeras páginas del PDF (sin autenticación)
-router.get('/libros/:id/preview', previewPdf);
+router.get('/libros/:id/preview', validarIdParam(), previewPdf);
 
 // Leer en línea: requiere sesión + haber comprado o rentado el libro (o
 // ser admin/gerente). Ver rentalAccess.service.js -> tieneAccesoLectura.
-router.get('/libros/:id/leer', protegerRuta, leerPdf);
+router.get('/libros/:id/leer', validarIdParam(), protegerRuta, leerPdf);
 
 // Descargar el archivo completo: requiere sesión + haberlo COMPRADO
 // (rentar NO da derecho a descarga, solo a leer). Admin/gerente sí puede,
 // para fines administrativos. Ver rentalAccess.service.js -> tieneAccesoDescarga.
-router.get('/libros/:id/download', protegerRuta, descargarPdf);
+router.get('/libros/:id/download', validarIdParam(), protegerRuta, descargarPdf);
 
 // Solo admin/gerente
 router.post('/', protegerRuta, permitirRoles('admin', 'gerente'), crearLibro);
-router.put('/:id', protegerRuta, permitirRoles('admin', 'gerente'), actualizarLibro);
-router.delete('/:id', protegerRuta, permitirRoles('admin', 'gerente'), eliminarLibro);
+router.put('/:id', validarIdParam(), protegerRuta, permitirRoles('admin', 'gerente'), actualizarLibro);
+router.delete('/:id', validarIdParam(), protegerRuta, permitirRoles('admin', 'gerente'), eliminarLibro);
 router.post(
   '/upload-pdf',
   protegerRuta,

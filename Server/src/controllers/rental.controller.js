@@ -1,11 +1,15 @@
 const Rental = require('../models/Rental');
 const Book = require('../models/Book');
+const { esObjectIdValido } = require('../utils/validators.util');
 
 const crearRenta = async (req, res) => {
   try {
     const { libroId } = req.body;
     if (!libroId) {
       return res.status(400).json({ message: 'libroId es obligatorio' });
+    }
+    if (!esObjectIdValido(libroId)) {
+      return res.status(400).json({ message: 'libroId no es válido' });
     }
 
     const libro = await Book.findById(libroId);

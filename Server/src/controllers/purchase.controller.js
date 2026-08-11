@@ -1,11 +1,21 @@
 const Purchase = require('../models/Purchase');
 const Book = require('../models/Book');
+const { esObjectIdValido } = require('../utils/validators.util');
 
 const crearCompra = async (req, res) => {
   try {
     const { libroId } = req.body;
     if (!libroId) {
       return res.status(400).json({ message: 'libroId es obligatorio' });
+    }
+    // Antes de usar libroId en cualquier query de Mongo, se valida que
+    // tenga el formato exacto de un ObjectId (24 caracteres hexadecimales).
+    // Sin esto, alguien podría mandar algo que no sea un id real (incluso
+    // ya neutralizado por sanitizarMongo si fuera un operador tipo
+    // { "$ne": null }) y de todos modos vale la pena rechazarlo aquí con
+    // un mensaje claro en vez de dejar que Mongoose truene con un CastError.
+    if (!esObjectIdValido(libroId)) {
+      return res.status(400).json({ message: 'libroId no es válido' });
     }
 
     const libro = await Book.findById(libroId);

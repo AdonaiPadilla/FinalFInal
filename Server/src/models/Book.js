@@ -12,14 +12,17 @@ const bookSchema = new mongoose.Schema({
   precioCompra: {
     type: Number,
     default: 50,
+    min: [0, 'El precio de compra no puede ser negativo'],
   },
   precioRenta: {
     type: Number,
     default: 15,
+    min: [0, 'El precio de renta no puede ser negativo'],
   },
   totalPaginas: {
     type: Number,
     default: 100,
+    min: [1, 'El libro debe tener al menos 1 página'],
   },
   portada: {
     type: String,
@@ -34,6 +37,7 @@ const bookSchema = new mongoose.Schema({
   duracionRentaDias: {
     type: Number,
     default: 14,
+    min: [1, 'La duración de la renta debe ser de al menos 1 día'],
   },
   activo: {
     type: Boolean,

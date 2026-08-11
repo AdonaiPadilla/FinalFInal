@@ -23,15 +23,27 @@ const obtenerUsuarioPorId = async (req, res) => {
 
 const eliminarUsuario = async (req, res) => {
   try {
-    const usuario = await User.findByIdAndUpdate(
-      req.params.id,
-      { activo: false },
-      { new: true }
-    ).select('-password');
+    if (req.params.id === req.usuario.id) {
+      return res.status(400).json({ message: 'No puedes desactivar tu propia cuenta' });
+    }
 
-    if (!usuario) {
+    const usuarioObjetivo = await User.findById(req.params.id);
+    if (!usuarioObjetivo) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
+
+    // Evita que un admin desactive a otro admin sin querer (o por abuso
+    // de una cuenta comprometida). Si de verdad hace falta, que lo haga
+    // directo en la base de datos.
+    if (usuarioObjetivo.rol === 'admin') {
+      return res.status(403).json({ message: 'No puedes desactivar a otro administrador desde aquí' });
+    }
+
+    usuarioObjetivo.activo = false;
+    await usuarioObjetivo.save();
+
+    const usuario = usuarioObjetivo.toObject();
+    delete usuario.password;
 
     res.json({ message: 'Usuario desactivado correctamente', usuario });
   } catch (error) {

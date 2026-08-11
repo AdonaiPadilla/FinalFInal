@@ -25,9 +25,11 @@ export default function PanelAdminScreen() {
       <View style={styles.boton}>
         <Button title="Ver compras" onPress={() => router.push('/admin/compras')} />
       </View>
-      <View style={styles.boton}>
-        <Button title="Gestionar usuarios" onPress={() => router.push('/admin/usuarios')} />
-      </View>
+      {!esGerente ? (
+        <View style={styles.boton}>
+          <Button title="Gestionar usuarios" onPress={() => router.push('/admin/usuarios')} />
+        </View>
+      ) : null}
     </View>
   );
 }

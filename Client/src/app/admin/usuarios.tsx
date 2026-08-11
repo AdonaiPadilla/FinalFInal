@@ -2,18 +2,24 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, Button, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { obtenerTodosLosUsuarios, eliminarUsuario } from '../../api/booksApi';
+import { useAuth } from '../../context/AuthContext';
 
 export default function UsuariosAdminScreen() {
   const router = useRouter();
+  const { usuario: usuarioActual } = useAuth();
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const cargarUsuarios = useCallback(async () => {
     try {
       const data = await obtenerTodosLosUsuarios();
       setUsuarios(data);
-    } catch (error) {
-      console.error('Error al cargar usuarios:', error);
+      setError(null);
+    } catch (err: any) {
+      const mensaje = err.response?.data?.message || 'No se pudo cargar la lista de usuarios';
+      setError(mensaje);
+      console.error('Error al cargar usuarios:', err);
     } finally {
       setCargando(false);
     }
@@ -38,8 +44,9 @@ export default function UsuariosAdminScreen() {
             try {
               await eliminarUsuario(usuario._id);
               await cargarUsuarios();
-            } catch (error) {
-              console.error('Error al desactivar usuario:', error);
+            } catch (err: any) {
+              const mensaje = err.response?.data?.message || 'No se pudo desactivar el usuario';
+              Alert.alert('Error', mensaje);
             }
           },
         },
@@ -60,24 +67,34 @@ export default function UsuariosAdminScreen() {
       <Button title="← Volver" onPress={() => router.back()} />
       <Text style={styles.titulo}>Usuarios ({usuarios.length})</Text>
 
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
       <FlatList
         data={usuarios}
         keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <View style={styles.fila}>
-            <Text style={styles.nombre}>{item.nombre}</Text>
-            <Text style={styles.detalle}>Email: {item.email}</Text>
-            <Text style={styles.detalle}>Rol: {item.rol}</Text>
-            <Text style={styles.detalle}>Estado: {item.activo ? 'Activo' : 'Desactivado'}</Text>
-            <View style={styles.botonAccion}>
-              <Button
-                title={item.activo ? 'Desactivar' : 'Desactivado'}
-                onPress={() => confirmarEliminacion(item)}
-                disabled={!item.activo}
-              />
+        renderItem={({ item }) => {
+          const esUnoMismo = item._id === usuarioActual?.id;
+          const esOtroAdmin = item.rol === 'admin' && !esUnoMismo;
+          const puedeDesactivar = item.activo && !esUnoMismo && !esOtroAdmin;
+
+          return (
+            <View style={styles.fila}>
+              <Text style={styles.nombre}>{item.nombre}{esUnoMismo ? ' (tú)' : ''}</Text>
+              <Text style={styles.detalle}>Email: {item.email}</Text>
+              <Text style={styles.detalle}>Rol: {item.rol}</Text>
+              <Text style={styles.detalle}>Estado: {item.activo ? 'Activo' : 'Desactivado'}</Text>
+              {!esUnoMismo && !esOtroAdmin ? (
+                <View style={styles.botonAccion}>
+                  <Button
+                    title={item.activo ? 'Desactivar' : 'Desactivado'}
+                    onPress={() => confirmarEliminacion(item)}
+                    disabled={!puedeDesactivar}
+                  />
+                </View>
+              ) : null}
             </View>
-          </View>
-        )}
+          );
+        }}
         ListEmptyComponent={<Text style={styles.vacio}>No hay usuarios registrados</Text>}
       />
     </View>
@@ -93,4 +110,5 @@ const styles = StyleSheet.create({
   detalle: { fontSize: 13, color: '#666', marginTop: 2 },
   botonAccion: { marginTop: 8 },
   vacio: { textAlign: 'center', color: '#999', marginTop: 40 },
+  error: { color: '#c00', marginBottom: 12, fontSize: 13 },
 });
