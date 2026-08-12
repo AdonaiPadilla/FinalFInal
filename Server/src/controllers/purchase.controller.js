@@ -1,4 +1,5 @@
 const Purchase = require('../models/Purchase');
+const Rental = require('../models/Rental');
 const Book = require('../models/Book');
 const { esObjectIdValido } = require('../utils/validators.util');
 
@@ -76,8 +77,15 @@ const eliminarCompra = async (req, res) => {
     const compra = await Purchase.findById(compraId);
     if (!compra) return res.status(404).json({ message: 'Compra no encontrada' });
 
+    // Eliminamos la compra
     await Purchase.findByIdAndDelete(compraId);
-    res.json({ message: 'Compra eliminada correctamente' });
+
+    // Además, revocamos cualquier renta asociada al mismo usuario y libro,
+    // para que eliminar la compra quite también el acceso de lectura si no
+    // había una renta legítima separada.
+    const resultadoRentas = await Rental.deleteMany({ usuario: compra.usuario, libro: compra.libro });
+
+    res.json({ message: 'Compra eliminada correctamente', rentasEliminadas: resultadoRentas.deletedCount });
   } catch (error) {
     res.status(500).json({ message: 'Error al eliminar la compra', error: error.message });
   }
