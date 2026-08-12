@@ -95,11 +95,18 @@ const HTML_PREVIEW = `
       } catch (err) {
         estado.style.display = 'block';
         estado.textContent = 'Error al cargar la vista previa: ' + err.message;
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ERROR', message: err.message }));
+        }
       }
     }
 
     document.addEventListener('message', function(e) { renderizarPreview(e.data); });
     window.addEventListener('message', function(e) { renderizarPreview(e.data); });
+
+    if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'READY' }));
+    }
   <\/script>
 </body>
 </html>
@@ -112,6 +119,7 @@ export default function PreviewScreen() {
   const [datos, setDatos] = useState<{ base64: string; maxPaginas: number } | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [webViewListo, setWebViewListo] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -149,9 +157,28 @@ export default function PreviewScreen() {
     return () => { cancelado = true; };
   }, [id]);
 
-  const handleLoad = () => {
-    if (datos && webViewRef.current) {
+  useEffect(() => {
+    if (webViewListo && datos && webViewRef.current) {
       webViewRef.current.postMessage(JSON.stringify(datos));
+    }
+  }, [webViewListo, datos]);
+
+  const handleLoad = () => {
+    setWebViewListo(true);
+  };
+
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const mensaje = JSON.parse(event.nativeEvent.data);
+      if (mensaje?.type === 'READY') {
+        setWebViewListo(true);
+        return;
+      }
+      if (mensaje?.type === 'ERROR') {
+        setError(`Error interno del visor: ${mensaje.message}`);
+      }
+    } catch {
+      // No hacemos nada para mensajes no JSON.
     }
   };
 
@@ -199,6 +226,7 @@ export default function PreviewScreen() {
         allowFileAccessFromFileURLs
         mixedContentMode="always"
         onLoad={handleLoad}
+        onMessage={handleWebViewMessage}
         onError={(e) => setError(`Error del visor: ${e.nativeEvent.description}`)}
       />
 

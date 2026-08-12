@@ -70,11 +70,18 @@ const HTML_LECTOR = `
       } catch (err) {
         estado.style.display = 'block';
         estado.textContent = 'Error al mostrar el PDF: ' + err.message;
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ERROR', message: err.message }));
+        }
       }
     }
 
     document.addEventListener('message', function(e) { renderizarPdf(e.data); });
     window.addEventListener('message', function(e) { renderizarPdf(e.data); });
+
+    if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'READY' }));
+    }
   <\/script>
 </body>
 </html>
@@ -88,6 +95,7 @@ export default function LectorScreen() {
   const [base64, setBase64] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [webViewListo, setWebViewListo] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -125,9 +133,28 @@ export default function LectorScreen() {
   // vía postMessage. Así el PDF nunca pasa por el puente JS<->nativo dentro
   // de una prop de React (que tiene un límite de tamaño) sino como un
   // mensaje explícito que el WebView maneja de forma asíncrona.
-  const handleLoad = () => {
-    if (base64 && webViewRef.current) {
+  useEffect(() => {
+    if (webViewListo && base64 && webViewRef.current) {
       webViewRef.current.postMessage(base64);
+    }
+  }, [webViewListo, base64]);
+
+  const handleLoad = () => {
+    setWebViewListo(true);
+  };
+
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const mensaje = JSON.parse(event.nativeEvent.data);
+      if (mensaje?.type === 'READY') {
+        setWebViewListo(true);
+        return;
+      }
+      if (mensaje?.type === 'ERROR') {
+        setError(`Error interno del visor: ${mensaje.message}`);
+      }
+    } catch {
+      // Mensajes no JSON ignorados.
     }
   };
 
@@ -166,6 +193,7 @@ export default function LectorScreen() {
         allowFileAccessFromFileURLs
         mixedContentMode="always"
         onLoad={handleLoad}
+        onMessage={handleWebViewMessage}
         onError={(evento) => setError(`Error del visor: ${evento.nativeEvent.description}`)}
         onHttpError={(evento) => setError(`Error HTTP del visor: ${evento.nativeEvent.statusCode}`)}
       />
