@@ -102,3 +102,14 @@ export const eliminarUsuario = async (id: string) => {
   const response = await api.delete(`/users/${id}`);
   return response.data;
 };
+
+// Admin: eliminar compra o renta
+export const eliminarCompra = async (id: string) => {
+  const response = await api.delete(`/purchases/${id}`);
+  return response.data;
+};
+
+export const eliminarRenta = async (id: string) => {
+  const response = await api.delete(`/rentals/${id}`);
+  return response.data;
+};

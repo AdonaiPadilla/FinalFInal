@@ -56,4 +56,21 @@ const todasLasRentas = async (req, res) => {
   }
 };
 
-module.exports = { crearRenta, misRentas, todasLasRentas };
+// DELETE /api/rentals/:id
+// Solo admin/gerente puede borrar un registro de renta.
+const eliminarRenta = async (req, res) => {
+  try {
+    const rentaId = req.params.id;
+    if (!esObjectIdValido(rentaId)) return res.status(400).json({ message: 'ID de renta inválido' });
+
+    const renta = await Rental.findById(rentaId);
+    if (!renta) return res.status(404).json({ message: 'Renta no encontrada' });
+
+    await Rental.findByIdAndDelete(rentaId);
+    res.json({ message: 'Renta eliminada correctamente' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al eliminar la renta', error: error.message });
+  }
+};
+
+module.exports = { crearRenta, misRentas, todasLasRentas, eliminarRenta };

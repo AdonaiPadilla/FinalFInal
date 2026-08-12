@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Button } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Button, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { obtenerTodasLasCompras } from '../../api/booksApi';
+import { obtenerTodasLasCompras, eliminarCompra } from '../../api/booksApi';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ComprasAdminScreen() {
@@ -10,6 +10,7 @@ export default function ComprasAdminScreen() {
   const [compras, setCompras] = useState([]);
   const [cargando, setCargando] = useState(true);
   const esGerente = usuario?.rol === 'gerente';
+  const esAdmin = usuario?.rol === 'admin' || usuario?.rol === 'gerente';
   const totalGanado = compras.reduce((sum, item) => sum + Number(item.precioPagado || 0), 0);
 
   useFocusEffect(
@@ -27,6 +28,26 @@ export default function ComprasAdminScreen() {
       cargar();
     }, [])
   );
+
+  const manejarEliminar = async (id: string) => {
+    Alert.alert('Confirmar', '¿Eliminar esta compra permanentemente?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await eliminarCompra(id);
+            const data = await obtenerTodasLasCompras();
+            setCompras(data);
+          } catch (error) {
+            console.error('Error al eliminar compra:', error);
+            Alert.alert('Error', error.response?.data?.message || 'No se pudo eliminar la compra');
+          }
+        },
+      },
+    ]);
+  };
 
   if (cargando) {
     return (
@@ -50,6 +71,11 @@ export default function ComprasAdminScreen() {
             <Text style={styles.tituloLibro}>{item.libro?.titulo || 'Libro eliminado'}</Text>
             <Text style={styles.detalle}>Usuario: {item.usuario?.nombre} ({item.usuario?.email})</Text>
             <Text style={styles.detalle}>${item.precioPagado} — {new Date(item.createdAt).toLocaleDateString()}</Text>
+            {esAdmin ? (
+              <View style={{ marginTop: 8 }}>
+                <Button title="Eliminar" color="#c00" onPress={() => manejarEliminar(item._id)} />
+              </View>
+            ) : null}
           </View>
         )}
         ListEmptyComponent={<Text style={styles.vacio}>No hay compras registradas</Text>}

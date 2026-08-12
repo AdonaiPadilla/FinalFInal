@@ -66,4 +66,21 @@ const todasLasCompras = async (req, res) => {
   }
 };
 
-module.exports = { crearCompra, misCompras, todasLasCompras };
+// DELETE /api/purchases/:id
+// Solo admin/gerente puede borrar un registro de compra.
+const eliminarCompra = async (req, res) => {
+  try {
+    const compraId = req.params.id;
+    if (!esObjectIdValido(compraId)) return res.status(400).json({ message: 'ID de compra inválido' });
+
+    const compra = await Purchase.findById(compraId);
+    if (!compra) return res.status(404).json({ message: 'Compra no encontrada' });
+
+    await Purchase.findByIdAndDelete(compraId);
+    res.json({ message: 'Compra eliminada correctamente' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al eliminar la compra', error: error.message });
+  }
+};
+
+module.exports = { crearCompra, misCompras, todasLasCompras, eliminarCompra };

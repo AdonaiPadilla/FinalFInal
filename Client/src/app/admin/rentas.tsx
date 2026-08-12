@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Button } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Button, Alert } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { obtenerTodasLasRentas } from '../../api/booksApi';
+import { obtenerTodasLasRentas, eliminarRenta } from '../../api/booksApi';
 import { useAuth } from '../../context/AuthContext';
 
 export default function RentasAdminScreen() {
@@ -10,6 +10,7 @@ export default function RentasAdminScreen() {
   const [rentas, setRentas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const esGerente = usuario?.rol === 'gerente';
+  const esAdmin = usuario?.rol === 'admin' || usuario?.rol === 'gerente';
   const totalGanado = rentas.reduce((sum, item) => sum + Number(item.precioRenta || 0), 0);
 
   useFocusEffect(
@@ -58,6 +59,25 @@ export default function RentasAdminScreen() {
               <Text style={[styles.estado, activa ? styles.activa : styles.vencida]}>
                 {activa ? 'Activa' : 'Vencida'}
               </Text>
+              {esAdmin ? (
+                <View style={{ marginTop: 8 }}>
+                  <Button title="Eliminar" color="#c00" onPress={() => {
+                    Alert.alert('Confirmar', '¿Eliminar esta renta? Esto revocará el acceso.', [
+                      { text: 'Cancelar', style: 'cancel' },
+                      { text: 'Eliminar', style: 'destructive', onPress: async () => {
+                        try {
+                          await eliminarRenta(item._id);
+                          const data = await obtenerTodasLasRentas();
+                          setRentas(data);
+                        } catch (error) {
+                          console.error('Error al eliminar renta:', error);
+                          Alert.alert('Error', error.response?.data?.message || 'No se pudo eliminar la renta');
+                        }
+                      } }
+                    ]);
+                  }} />
+                </View>
+              ) : null}
             </View>
           );
         }}
